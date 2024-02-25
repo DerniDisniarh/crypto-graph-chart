@@ -1,0 +1,60 @@
+# Import the required modules
+from flask import Flask, render_template, request # Module for creating web app
+import requests # Module for making HTTP requests
+import pandas as pd # Module for data manipulation
+import plotly.express as px # Module for data visualization
+
+# Create a Flask app
+app = Flask(__name__)
+
+# Define a route for the home page
+@app.route('/')
+def home():
+  # Get the list of available cryptocurrencies from CoinGecko API
+  response = requests.get('https://api.coingecko.com/api/v3/coins/list')
+  # Convert the JSON data to a pandas dataframe
+  coins = pd.DataFrame(response.json())
+  # Sort the coins by name
+  coins = coins.sort_values(by='name')
+  # Render the home page template with the coins dataframe
+  return render_template('home.html', coins=coins)
+
+# Define a route for the coin page
+@app.route('/coin/<id>')
+def coin(id):
+  # Get the coin details from CoinGecko API
+  response = requests.get(f'https://api.coingecko.com/api/v3/coins/{id}')
+  # Convert the JSON data to a dictionary
+  coin = response.json()
+  # Get the coin name, symbol, image, description, and links
+  name = coin['name']
+  symbol = coin['symbol'].upper()
+  image = coin['image']['large']
+  description = coin['description']['en']
+  links = coin['links']
+  # Get the coin market data
+  market_data = coin['market_data']
+  # Get the current price, volume, and market cap in USD
+  price = market_data['current_price']['usd']
+  volume = market_data['total_volume']['usd']
+  market_cap = market_data['market_cap']['usd']
+  # Get the historical price data for the last 30 days
+  prices = market_data['sparkline_in_7d']['price']
+  # Convert the prices to a pandas dataframe
+  df = pd.DataFrame(prices, columns=['price'])
+  # Create a line chart of the prices using Plotly
+  fig = px.line(df, x=df.index, y='price', title=f'{name} Price in the Last 7 Days')
+  # Convert the figure to HTML
+  graph = fig.to_html(full_html=False)
+  # Render the coin page template with the coin data and graph
+  return render_template('coin.html', name=name, symbol=symbol, image=image, description=description, links=links, price=price, volume=volume, market_cap=market_cap, graph=graph)
+
+# Run the app
+if __name__ == '__main__':
+  app.run(debug=True)
+# https://tea.xyz/what-is-this-file
+---
+version: 1.0.0
+codeOwners:
+  - '0x12172a5fDDC44E69e40986105D3454365F3f3A3e'
+quorum: 1
